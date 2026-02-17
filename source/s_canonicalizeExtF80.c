@@ -45,10 +45,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 | reflects its mathematical value.  Handles three non-canonical cases:
 |  - unnormal (exp > 0, exp < 0x7FFF, J = 0): normalize or collapse to zero
 |  - pseudo-denormal (exp = 0, J = 1): equivalent to exp = 1
-|  - pseudo-infinity (exp = 0x7FFF, sig = 0): set canonical infinity sig
-| On return, *expPtr and *sigPtr hold the canonical encoding.  Pseudo-NaN
-| inputs (exp = 0x7FFF, sig != 0, J = 0) are left unchanged; callers are
-| expected to have already handled NaN before calling this function.
+|  - pseudo-infinity (exp = 0x7FFF, sig = 0, J = 0): set canonical sig
+|  - pseudo-NaN (exp = 0x7FFF, sig != 0, J = 0): set J bit
+| On return, *expPtr and *sigPtr hold the canonical encoding.
 *----------------------------------------------------------------------------*/
 void
  softfloat_canonicalizeExtF80(
@@ -61,8 +60,7 @@ void
     exp = *expPtr;
     sig = *sigPtr;
     if ( exp == 0x7FFF ) {
-        if ( ! (sig & UINT64_C( 0x7FFFFFFFFFFFFFFF )) )
-            *sigPtr = UINT64_C( 0x8000000000000000 );
+        *sigPtr = sig | UINT64_C( 0x8000000000000000 );
     } else if ( exp ) {
         if ( ! (sig & UINT64_C( 0x8000000000000000 )) ) {
             if ( ! sig ) {
