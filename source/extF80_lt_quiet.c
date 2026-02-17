@@ -50,6 +50,7 @@ bool extF80_lt_quiet( extFloat80_t a, extFloat80_t b )
     uint_fast16_t uiB64;
     uint_fast64_t uiB0;
     bool signA, signB;
+    int_fast32_t expA, expB;
 
     uA.f = a;
     uiA64 = uA.s.signExp;
@@ -66,6 +67,17 @@ bool extF80_lt_quiet( extFloat80_t a, extFloat80_t b )
         }
         return false;
     }
+    /*------------------------------------------------------------------------
+    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals,
+    | pseudo-infinity) so that bit-pattern comparisons reflect mathematical
+    | values.
+    *------------------------------------------------------------------------*/
+    expA = uiA64 & 0x7FFF;
+    softfloat_canonicalizeExtF80( &expA, &uiA0 );
+    uiA64 = (uiA64 & 0x8000) | expA;
+    expB = uiB64 & 0x7FFF;
+    softfloat_canonicalizeExtF80( &expB, &uiB0 );
+    uiB64 = (uiB64 & 0x8000) | expB;
     signA = signExtF80UI64( uiA64 );
     signB = signExtF80UI64( uiB64 );
     return

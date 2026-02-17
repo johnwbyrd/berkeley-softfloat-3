@@ -48,6 +48,7 @@ bool extF80_eq_signaling( extFloat80_t a, extFloat80_t b )
     union { struct extFloat80M s; extFloat80_t f; } uB;
     uint_fast16_t uiB64;
     uint_fast64_t uiB0;
+    int_fast32_t expA, expB;
 
     uA.f = a;
     uiA64 = uA.s.signExp;
@@ -59,6 +60,17 @@ bool extF80_eq_signaling( extFloat80_t a, extFloat80_t b )
         softfloat_raiseFlags( softfloat_flag_invalid );
         return false;
     }
+    /*------------------------------------------------------------------------
+    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals,
+    | pseudo-infinity) so that bit-pattern comparisons reflect mathematical
+    | values.
+    *------------------------------------------------------------------------*/
+    expA = uiA64 & 0x7FFF;
+    softfloat_canonicalizeExtF80( &expA, &uiA0 );
+    uiA64 = (uiA64 & 0x8000) | expA;
+    expB = uiB64 & 0x7FFF;
+    softfloat_canonicalizeExtF80( &expB, &uiB0 );
+    uiB64 = (uiB64 & 0x8000) | expB;
     return
            (uiA0 == uiB0)
         && ((uiA64 == uiB64) || (! uiA0 && ! ((uiA64 | uiB64) & 0x7FFF)));

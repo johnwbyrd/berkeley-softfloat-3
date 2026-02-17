@@ -2,7 +2,7 @@
 /*============================================================================
 
 This C source file is part of the SoftFloat IEEE Floating-Point Arithmetic
-Package, Release 3e, by John R. Hauser.
+Package, Release 3e, by John R. Hauser.  
 
 Copyright 2011, 2012, 2013, 2014 The Regents of the University of California.
 All rights reserved.
@@ -34,52 +34,53 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
 
-#include <stdbool.h>
+/* This particular file was written by John Byrd. */
+
 #include <stdint.h>
 #include "platform.h"
 #include "internals.h"
-#include "specialize.h"
-#include "softfloat.h"
 
-bool extF80_lt( extFloat80_t a, extFloat80_t b )
+/*----------------------------------------------------------------------------
+| Canonicalizes the encoding of an extFloat80 value so that its bit pattern
+| reflects its mathematical value.  Handles three non-canonical cases:
+|  - unnormal (exp > 0, exp < 0x7FFF, J = 0): normalize or collapse to zero
+|  - pseudo-denormal (exp = 0, J = 1): equivalent to exp = 1
+|  - pseudo-infinity (exp = 0x7FFF, sig = 0): set canonical infinity sig
+| On return, *expPtr and *sigPtr hold the canonical encoding.  Pseudo-NaN
+| inputs (exp = 0x7FFF, sig != 0, J = 0) are left unchanged; callers are
+| expected to have already handled NaN before calling this function.
+*----------------------------------------------------------------------------*/
+void
+ softfloat_canonicalizeExtF80(
+     int_fast32_t *expPtr, uint_fast64_t *sigPtr )
 {
-    union { struct extFloat80M s; extFloat80_t f; } uA;
-    uint_fast16_t uiA64;
-    uint_fast64_t uiA0;
-    union { struct extFloat80M s; extFloat80_t f; } uB;
-    uint_fast16_t uiB64;
-    uint_fast64_t uiB0;
-    bool signA, signB;
-    int_fast32_t expA, expB;
+    int_fast32_t exp;
+    uint_fast64_t sig;
+    struct exp32_sig64 normExpSig;
 
-    uA.f = a;
-    uiA64 = uA.s.signExp;
-    uiA0  = uA.s.signif;
-    uB.f = b;
-    uiB64 = uB.s.signExp;
-    uiB0  = uB.s.signif;
-    if ( isNaNExtF80UI( uiA64, uiA0 ) || isNaNExtF80UI( uiB64, uiB0 ) ) {
-        softfloat_raiseFlags( softfloat_flag_invalid );
-        return false;
+    exp = *expPtr;
+    sig = *sigPtr;
+    if ( exp == 0x7FFF ) {
+        if ( ! (sig & UINT64_C( 0x7FFFFFFFFFFFFFFF )) )
+            *sigPtr = UINT64_C( 0x8000000000000000 );
+    } else if ( exp ) {
+        if ( ! (sig & UINT64_C( 0x8000000000000000 )) ) {
+            if ( ! sig ) {
+                *expPtr = 0;
+            } else {
+                normExpSig = softfloat_normSubnormalExtF80Sig( sig );
+                if ( exp + normExpSig.exp >= 1 ) {
+                    *expPtr = exp + normExpSig.exp;
+                    *sigPtr = normExpSig.sig;
+                } else {
+                    if ( exp > 1 ) *sigPtr = sig << (exp - 1);
+                    *expPtr = 0;
+                }
+            }
+        }
+    } else {
+        if ( sig & UINT64_C( 0x8000000000000000 ) )
+            *expPtr = 1;
     }
-    /*------------------------------------------------------------------------
-    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals,
-    | pseudo-infinity) so that bit-pattern comparisons reflect mathematical
-    | values.
-    *------------------------------------------------------------------------*/
-    expA = uiA64 & 0x7FFF;
-    softfloat_canonicalizeExtF80( &expA, &uiA0 );
-    uiA64 = (uiA64 & 0x8000) | expA;
-    expB = uiB64 & 0x7FFF;
-    softfloat_canonicalizeExtF80( &expB, &uiB0 );
-    uiB64 = (uiB64 & 0x8000) | expB;
-    signA = signExtF80UI64( uiA64 );
-    signB = signExtF80UI64( uiB64 );
-    return
-        (signA != signB)
-            ? signA && (((uiA64 | uiB64) & 0x7FFF) | uiA0 | uiB0)
-            : ((uiA64 != uiB64) || (uiA0 != uiB0))
-                  && (signA ^ softfloat_lt128( uiA64, uiA0, uiB64, uiB0 ));
 
 }
-

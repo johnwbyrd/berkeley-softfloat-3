@@ -170,6 +170,9 @@ float64_t
 struct exp32_sig64 { int_fast32_t exp; uint64_t sig; };
 struct exp32_sig64 softfloat_normSubnormalExtF80Sig( uint_fast64_t );
 
+void
+ softfloat_canonicalizeExtF80( int_fast32_t *, uint_fast64_t * );
+
 extFloat80_t
  softfloat_roundPackToExtF80(
      bool, int_fast32_t, uint_fast64_t, uint_fast64_t, uint_fast8_t );
