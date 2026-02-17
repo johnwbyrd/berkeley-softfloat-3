@@ -50,6 +50,8 @@ bool extF80_le_quiet( extFloat80_t a, extFloat80_t b )
     uint_fast16_t uiB64;
     uint_fast64_t uiB0;
     bool signA, signB;
+    int_fast32_t expA, expB;
+    struct exp32_sig64 normExpSig;
 
     uA.f = a;
     uiA64 = uA.s.signExp;
@@ -65,6 +67,59 @@ bool extF80_le_quiet( extFloat80_t a, extFloat80_t b )
             softfloat_raiseFlags( softfloat_flag_invalid );
         }
         return false;
+    }
+    /*------------------------------------------------------------------------
+    | Canonicalize non-canonical encodings so that the bit-pattern comparison
+    | below reflects mathematical values:
+    |  - unnormal (exp>0, exp<max, J=0): normalize or collapse to zero
+    |  - pseudo-denormal (exp=0, J=1): equivalent to exp=1 with same sig
+    |  - pseudo-infinity (exp=max, sig=0): canonical infinity sig
+    *------------------------------------------------------------------------*/
+    expA = uiA64 & 0x7FFF;
+    if ( expA == 0x7FFF ) {
+        if ( ! (uiA0 & UINT64_C( 0x7FFFFFFFFFFFFFFF )) )
+            uiA0 = UINT64_C( 0x8000000000000000 );
+    } else if ( expA ) {
+        if ( ! (uiA0 & UINT64_C( 0x8000000000000000 )) ) {
+            if ( ! uiA0 ) {
+                uiA64 &= 0x8000;
+            } else {
+                normExpSig = softfloat_normSubnormalExtF80Sig( uiA0 );
+                if ( expA + normExpSig.exp >= 1 ) {
+                    uiA64 = (uiA64 & 0x8000) | (expA + normExpSig.exp);
+                    uiA0 = normExpSig.sig;
+                } else {
+                    if ( expA > 1 ) uiA0 <<= (expA - 1);
+                    uiA64 &= 0x8000;
+                }
+            }
+        }
+    } else {
+        if ( uiA0 & UINT64_C( 0x8000000000000000 ) )
+            uiA64 = (uiA64 & 0x8000) | 1;
+    }
+    expB = uiB64 & 0x7FFF;
+    if ( expB == 0x7FFF ) {
+        if ( ! (uiB0 & UINT64_C( 0x7FFFFFFFFFFFFFFF )) )
+            uiB0 = UINT64_C( 0x8000000000000000 );
+    } else if ( expB ) {
+        if ( ! (uiB0 & UINT64_C( 0x8000000000000000 )) ) {
+            if ( ! uiB0 ) {
+                uiB64 &= 0x8000;
+            } else {
+                normExpSig = softfloat_normSubnormalExtF80Sig( uiB0 );
+                if ( expB + normExpSig.exp >= 1 ) {
+                    uiB64 = (uiB64 & 0x8000) | (expB + normExpSig.exp);
+                    uiB0 = normExpSig.sig;
+                } else {
+                    if ( expB > 1 ) uiB0 <<= (expB - 1);
+                    uiB64 &= 0x8000;
+                }
+            }
+        }
+    } else {
+        if ( uiB0 & UINT64_C( 0x8000000000000000 ) )
+            uiB64 = (uiB64 & 0x8000) | 1;
     }
     signA = signExtF80UI64( uiA64 );
     signB = signExtF80UI64( uiB64 );
