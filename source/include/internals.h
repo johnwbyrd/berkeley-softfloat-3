@@ -168,6 +168,8 @@ struct exp32_sig64 softfloat_normSubnormalExtF80Sig( uint_fast64_t );
 void
  softfloat_canonicalizeExtF80( int_fast32_t *, uint_fast64_t * );
 void
+ softfloat_canonicalizeExtF80UI( uint_fast16_t *, uint_fast64_t * );
+void
  softfloat_canonicalizeExtF80M( int32_t *, uint64_t * );
 void
  softfloat_canonicalizeExtF80MUI( uint_fast16_t *, uint64_t * );

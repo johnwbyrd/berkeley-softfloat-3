@@ -34,47 +34,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
 
-#include <stdbool.h>
+/* This particular file was written by John Byrd. */
+
 #include <stdint.h>
 #include "platform.h"
 #include "internals.h"
-#include "specialize.h"
-#include "softfloat.h"
 
-bool extF80_eq( extFloat80_t a, extFloat80_t b )
+/*----------------------------------------------------------------------------
+| Thin wrapper around softfloat_canonicalizeExtF80 that operates on the
+| packed signExp/sig representation used by the extF80 comparison functions.
+| Extracts the exponent, canonicalizes, and repacks the signExp with the
+| original sign preserved.
+*----------------------------------------------------------------------------*/
+void
+ softfloat_canonicalizeExtF80UI(
+     uint_fast16_t *signExpPtr, uint_fast64_t *sigPtr )
 {
-    union { struct extFloat80M s; extFloat80_t f; } uA;
-    uint_fast16_t uiA64;
-    uint_fast64_t uiA0;
-    union { struct extFloat80M s; extFloat80_t f; } uB;
-    uint_fast16_t uiB64;
-    uint_fast64_t uiB0;
+    int_fast32_t exp = *signExpPtr & 0x7FFF;
 
-    uA.f = a;
-    uiA64 = uA.s.signExp;
-    uiA0  = uA.s.signif;
-    uB.f = b;
-    uiB64 = uB.s.signExp;
-    uiB0  = uB.s.signif;
-    if ( isNaNExtF80UI( uiA64, uiA0 ) || isNaNExtF80UI( uiB64, uiB0 ) ) {
-        if (
-               softfloat_isSigNaNExtF80UI( uiA64, uiA0 )
-            || softfloat_isSigNaNExtF80UI( uiB64, uiB0 )
-        ) {
-            softfloat_raiseFlags( softfloat_flag_invalid );
-        }
-        return false;
-    }
-    /*------------------------------------------------------------------------
-    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals,
-    | pseudo-infinity) so that bit-pattern comparisons reflect mathematical
-    | values.
-    *------------------------------------------------------------------------*/
-    softfloat_canonicalizeExtF80UI( &uiA64, &uiA0 );
-    softfloat_canonicalizeExtF80UI( &uiB64, &uiB0 );
-    return
-           (uiA0 == uiB0)
-        && ((uiA64 == uiB64) || (! uiA0 && ! ((uiA64 | uiB64) & 0x7FFF)));
+    softfloat_canonicalizeExtF80( &exp, sigPtr );
+    *signExpPtr = (*signExpPtr & 0x8000) | exp;
 
 }
-
