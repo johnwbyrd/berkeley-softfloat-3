@@ -72,9 +72,6 @@ void
     expB = expExtF80UI64( uiB64 );
     sigA = aSPtr->signif;
     sigB = bSPtr->signif;
-    /*------------------------------------------------------------------------
-    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals).
-    *------------------------------------------------------------------------*/
     softfloat_canonicalizeExtF80M( &expA, &sigA );
     softfloat_canonicalizeExtF80M( &expB, &sigB );
     uiA64 = packToExtF80UI64( signExtF80UI64( uiA64 ), expA );

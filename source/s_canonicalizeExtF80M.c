@@ -41,9 +41,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "internals.h"
 
 /*----------------------------------------------------------------------------
-| M-variant of softfloat_canonicalizeExtF80, using int32_t / uint64_t types
-| matching the non-FAST_INT64 code paths.  See s_canonicalizeExtF80.c for
-| the full description of the canonicalization rules.
+| Equivalent to 'softfloat_canonicalizeExtF80' (see s_canonicalizeExtF80.c
+| for the full description of extFloat80 non-canonical encodings and the
+| canonicalization rules), but using 'int32_t' and 'uint64_t' parameter
+| types to match the non-FAST_INT64 code paths.  The algorithm and behavior
+| are identical.
 *----------------------------------------------------------------------------*/
 void
  softfloat_canonicalizeExtF80M( int32_t *expPtr, uint64_t *sigPtr )

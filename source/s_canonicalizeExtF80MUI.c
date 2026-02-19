@@ -41,10 +41,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "internals.h"
 
 /*----------------------------------------------------------------------------
-| Thin wrapper around softfloat_canonicalizeExtF80M that operates on the
-| packed signExp/sig representation used by the extF80M comparison functions.
-| Extracts the exponent, canonicalizes, and repacks the signExp with the
-| original sign preserved.
+| Canonicalizes an extFloat80 value whose exponent and sign are stored in the
+| packed 'signExp' layout used by the non-FAST_INT64 comparison functions.
+| The packed 16-bit field '*signExpPtr' holds the sign in bit 15 and the
+| 15-bit biased exponent in bits 14:0.  This function extracts the exponent,
+| passes it along with '*sigPtr' to 'softfloat_canonicalizeExtF80M' (see
+| s_canonicalizeExtF80.c for the full canonicalization rules), and repacks
+| the possibly-modified exponent back into '*signExpPtr' with the original
+| sign bit preserved.
 *----------------------------------------------------------------------------*/
 void
  softfloat_canonicalizeExtF80MUI(

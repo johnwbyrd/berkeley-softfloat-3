@@ -69,9 +69,6 @@ extFloat80_t
     sigA = uiA0;
     expB = expExtF80UI64( uiB64 );
     sigB = uiB0;
-    /*------------------------------------------------------------------------
-    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals).
-    *------------------------------------------------------------------------*/
     softfloat_canonicalizeExtF80( &expA, &sigA );
     softfloat_canonicalizeExtF80( &expB, &sigB );
     /*------------------------------------------------------------------------

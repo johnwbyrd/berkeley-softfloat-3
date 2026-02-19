@@ -58,9 +58,6 @@ int
     sigB = bSPtr->signif;
     expA = expExtF80UI64( uiA64 );
     expB = expExtF80UI64( uiB64 );
-    /*------------------------------------------------------------------------
-    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals).
-    *------------------------------------------------------------------------*/
     softfloat_canonicalizeExtF80M( &expA, &sigA );
     softfloat_canonicalizeExtF80M( &expB, &sigB );
     /*------------------------------------------------------------------------
