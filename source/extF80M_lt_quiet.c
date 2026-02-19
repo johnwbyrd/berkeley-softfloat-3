@@ -72,6 +72,11 @@ bool extF80M_lt_quiet( const extFloat80_t *aPtr, const extFloat80_t *bPtr )
     uiB64 = bSPtr->signExp;
     uiB0  = bSPtr->signif;
     /*------------------------------------------------------------------------
+    | Canonicalize non-canonical encodings (unnormals, pseudo-denormals).
+    *------------------------------------------------------------------------*/
+    softfloat_canonicalizeExtF80MUI( &uiA64, &uiA0 );
+    softfloat_canonicalizeExtF80MUI( &uiB64, &uiB0 );
+    /*------------------------------------------------------------------------
     *------------------------------------------------------------------------*/
     if ( isNaNExtF80UI( uiA64, uiA0 ) || isNaNExtF80UI( uiB64, uiB0 ) ) {
         if (
