@@ -4,8 +4,8 @@
 This C source file is part of the SoftFloat IEEE Floating-Point Arithmetic
 Package, Release 3e, by John R. Hauser.
 
-Copyright 2011, 2012, 2013, 2014, 2015, 2016, 2017 The Regents of the
-University of California.  All rights reserved.
+Copyright 2011, 2012, 2013, 2014 The Regents of the University of California.
+All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -34,52 +34,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
 
-#include <stdbool.h>
+/* This particular file was written by John Byrd. */
+
 #include <stdint.h>
 #include "platform.h"
 #include "internals.h"
-#include "specialize.h"
-#include "softfloat.h"
 
-uint_fast64_t
- extF80_to_ui64( extFloat80_t a, uint_fast8_t roundingMode, bool exact )
+/*----------------------------------------------------------------------------
+| Equivalent to 'softfloat_canonicalizeExtF80' (see s_canonicalizeExtF80.c
+| for the full description of extFloat80 non-canonical encodings and the
+| canonicalization rules), but using 'int32_t' and 'uint64_t' parameter
+| types to match the non-FAST_INT64 code paths.  The algorithm and behavior
+| are identical.
+*----------------------------------------------------------------------------*/
+void
+ softfloat_canonicalizeExtF80M( int32_t *expPtr, uint64_t *sigPtr )
 {
-    union { struct extFloat80M s; extFloat80_t f; } uA;
-    uint_fast16_t uiA64;
-    bool sign;
-    int_fast32_t exp;
-    uint_fast64_t sig;
-    int_fast32_t shiftDist;
-    uint_fast64_t sigExtra;
-    struct uint64_extra sig64Extra;
+    int32_t exp;
+    uint64_t sig;
+    struct exp32_sig64 normExpSig;
 
-    /*------------------------------------------------------------------------
-    *------------------------------------------------------------------------*/
-    uA.f = a;
-    uiA64 = uA.s.signExp;
-    sign = signExtF80UI64( uiA64 );
-    exp  = expExtF80UI64( uiA64 );
-    sig = uA.s.signif;
-    softfloat_canonicalizeExtF80( &exp, &sig );
-    /*------------------------------------------------------------------------
-    *------------------------------------------------------------------------*/
-    shiftDist = 0x403E - exp;
-    if ( shiftDist < 0 ) {
-        softfloat_raiseFlags( softfloat_flag_invalid );
-        return
-            (exp == 0x7FFF) && (sig & UINT64_C( 0x7FFFFFFFFFFFFFFF ))
-                ? ui64_fromNaN
-                : sign ? ui64_fromNegOverflow : ui64_fromPosOverflow;
+    exp = *expPtr;
+    sig = *sigPtr;
+    if ( exp == 0x7FFF ) {
+        *sigPtr = sig | UINT64_C( 0x8000000000000000 );
+    } else if ( exp ) {
+        if ( ! (sig & UINT64_C( 0x8000000000000000 )) ) {
+            if ( ! sig ) {
+                *expPtr = 0;
+            } else {
+                normExpSig = softfloat_normSubnormalExtF80Sig( sig );
+                if ( exp + normExpSig.exp >= 1 ) {
+                    *expPtr = exp + normExpSig.exp;
+                    *sigPtr = normExpSig.sig;
+                } else {
+                    if ( exp > 1 ) *sigPtr = sig << (exp - 1);
+                    *expPtr = 0;
+                }
+            }
+        }
+    } else {
+        if ( sig & UINT64_C( 0x8000000000000000 ) )
+            *expPtr = 1;
     }
-    /*------------------------------------------------------------------------
-    *------------------------------------------------------------------------*/
-    sigExtra = 0;
-    if ( shiftDist ) {
-        sig64Extra = softfloat_shiftRightJam64Extra( sig, 0, shiftDist );
-        sig = sig64Extra.v;
-        sigExtra = sig64Extra.extra;
-    }
-    return softfloat_roundToUI64( sign, sig, sigExtra, roundingMode, exact );
 
 }
-
